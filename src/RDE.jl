@@ -5,7 +5,10 @@ using Distributions
 
 export
   OrnsteinUhlenbeck,
-  ito
+  ito!,
+  ito,
+  invito!,
+  invito
 
 include(joinpath("univariate", "OrnsteinUhlenbeck.jl"))
 
