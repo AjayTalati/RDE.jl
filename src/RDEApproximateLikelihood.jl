@@ -4,8 +4,10 @@ using Brownian
 using Distributions
 
 export
-  ZVSample
+  OrnsteinUhlenbeck,
+  ito
 
 include(joinpath("univariate", "OrnsteinUhlenbeck.jl"))
+include(joinpath("univariate", "ito.jl"))
 
 end
