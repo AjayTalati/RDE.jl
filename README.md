@@ -1,6 +1,5 @@
-RDEApproximateLikelihood.jl
+RDE.jl
 ===========================
 
-The `RDEApproximateLikelihood` Julia package provides an implementation of approximate likelihood construction for rough
-differential equations based on the methodology introduced in *Approximate Likelihood Construction for
-Rough Differential Equations*, A. Papavasiliou and T. Papamarkou, to appear.
+The `RDE` Julia package provides algorithms for solving, simulating and performing Bayesian inference on differential
+equations driven by rough paths.

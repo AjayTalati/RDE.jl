@@ -1,4 +1,4 @@
-module RDEApproximateLikelihood
+module RDE
 
 using Brownian
 using Distributions
@@ -8,6 +8,5 @@ export
   ito
 
 include(joinpath("univariate", "OrnsteinUhlenbeck.jl"))
-include(joinpath("univariate", "ito.jl"))
 
 end
