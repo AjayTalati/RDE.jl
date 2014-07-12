@@ -41,20 +41,14 @@ function invito(y0::Float64, y1::Float64, p::OrnsteinUhlenbeck)
 end
 
 function invito!(dx::Vector{Float64}, y::Vector{Float64}, p::OrnsteinUhlenbeck)
-  pnmone::Int64 = p.n-1
-  ld::Float64 = l/(pnmone)
+  ld::Float64 = l/(p.n-1)
   expmld::Float64 = exp(-ld)
 
-  for i = 1:pnmone
-    dx[i] = ld*()
-    # TODO: complete it
+  for i = 1:p.n
+    dx[i] = ld*(y[i+1]-y[i]*expmld)/(p.σ*(1-expmld))
   end
 
   dx
 end
 
-UniOUFBMAllInverseIto[y_, l_, s_] := Module[{ld, expmld},
-  ld = l/(Length[y]-1);
-  expmld = Exp[-ld];
-  ld*(Rest[y]-Most[y]*expmld)/(s*(1-expmld))
-]
+invito(y::Vector{Float64}, p::OrnsteinUhlenbeck) = invito!(Array(Float64, p.x.n-1), y, p)
