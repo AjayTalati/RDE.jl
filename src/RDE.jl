@@ -12,7 +12,8 @@ export
   ito,
   invito!,
   invito,
-  logpdf
+  logpdf,
+  approx_mle_ou_drift
 
 include(joinpath("univariate", "OrnsteinUhlenbeck.jl"))
 

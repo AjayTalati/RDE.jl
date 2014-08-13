@@ -35,7 +35,7 @@ end
 
 ito(dx::Vector{Float64}, p::OrnsteinUhlenbeck) = ito!(Array(Float64, p.x.n), dx, p)
 
-### Inverse Ito map takes two successive values of the solution vecto and returns a rough path increment dx
+### Inverse Ito map takes two successive values of the solution vector and returns a rough path increment dx
 function invito(y0::Float64, y1::Float64, p::OrnsteinUhlenbeck)
   λδ::Float64 = p.λ/(p.x.n-1)
   expmld::Float64 = exp(-λδ)
@@ -62,3 +62,16 @@ function logpdf(y::Vector{Float64}, p::OrnsteinUhlenbeck)
   λδ::Float64 = p.λ/pnmone
   logpdf(MvNormal(autocov(convert(FGN, p.x), pnmone)), invito(y, p))/pnmone+log(λδ/(p.σ*(1-exp(-λδ))))
 end
+
+function approx_mle_ou_drift(y::Vector{Float64}, x::Union(BrownianMotion, FBM))
+  ly = [0, y[1:end-1]]
+  #ly = y[1:end-1]
+  pnmone::Int64 = x.n-1
+  #P = autocov(convert(FGN, x), pnmone)
+  P = autocov(convert(FGN, x), x.n)
+  pnmone*log((ly'*P*ly)/(ly'*P*y))
+end
+
+#approx_mle_ou_diffusion
+
+#approx_mle_ou
