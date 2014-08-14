@@ -26,14 +26,14 @@ end
 
 ### Ito map which takes a vector of increments dx as input, i.e. a vector of fractional Guassian noise samples
 function ito!(y::Vector{Float64}, dx::Vector{Float64}, p::OrnsteinUhlenbeck)
-  y[1] = 0.
-  for i = 1:p.x.n-1
-    y[i+1] = ito(y[i], dx[i], p)
+  y[1] = ito(0., dx[1], p)
+  for i = 2:p.x.n-1
+    y[i] = ito(y[i-1], dx[i], p)
   end
   y
 end
 
-ito(dx::Vector{Float64}, p::OrnsteinUhlenbeck) = ito!(Array(Float64, p.x.n), dx, p)
+ito(dx::Vector{Float64}, p::OrnsteinUhlenbeck) = ito!(Array(Float64, p.x.n-1), dx, p)
 
 ### Inverse Ito map takes two successive values of the solution vector and returns a rough path increment dx
 function invito(y0::Float64, y1::Float64, p::OrnsteinUhlenbeck)
@@ -44,11 +44,12 @@ end
 
 function invito!(dx::Vector{Float64}, y::Vector{Float64}, p::OrnsteinUhlenbeck)
   pnmone::Int64 = p.x.n-1
-  λδ::Float64 = p.λ/(pnmone)
+  λδ::Float64 = p.λ/pnmone
   expmld::Float64 = exp(-λδ)
 
-  for i = 1:pnmone
-    dx[i] = λδ*(y[i+1]-y[i]*expmld)/(p.σ*(1-expmld))
+  dx[1] = λδ*y[1]/(p.σ*(1-expmld))
+  for i = 2:pnmone
+    dx[i] = λδ*(y[i]-y[i-1]*expmld)/(p.σ*(1-expmld))
   end
 
   dx
@@ -63,12 +64,11 @@ function logpdf(y::Vector{Float64}, p::OrnsteinUhlenbeck)
   logpdf(MvNormal(autocov(convert(FGN, p.x), pnmone)), invito(y, p))/pnmone+log(λδ/(p.σ*(1-exp(-λδ))))
 end
 
+# Approximate MLE estimator of drift parameter of OU process with FBM noise
 function approx_mle_ou_drift(y::Vector{Float64}, x::Union(BrownianMotion, FBM))
-  ly = [0, y[1:end-1]]
-  #ly = y[1:end-1]
+  ly::Vector{Float64} = [0, y[1:end-1]]
   pnmone::Int64 = x.n-1
-  #P = autocov(convert(FGN, x), pnmone)
-  P = autocov(convert(FGN, x), x.n)
+  P::Matrix{Float64} = inv(autocov(convert(FGN, x), pnmone))
   pnmone*log((ly'*P*ly)/(ly'*P*y))
 end
 
