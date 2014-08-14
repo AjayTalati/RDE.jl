@@ -20,8 +20,8 @@ const OU = OrnsteinUhlenbeck
 ### solution
 function ito(y::Float64, dx::Float64, p::OrnsteinUhlenbeck)
   λδ::Float64 = p.λ/(p.x.n-1)
-  expmld::Float64 = exp(-λδ)
-  y*expmld+(p.σ)*dx*(1-expmld)/λδ  
+  expmλδ::Float64 = exp(-λδ)
+  y*expmλδ+(p.σ)*dx*(1-expmλδ)/λδ  
 end
 
 ### Ito map which takes a vector of increments dx as input, i.e. a vector of fractional Guassian noise samples
@@ -38,18 +38,18 @@ ito(dx::Vector{Float64}, p::OrnsteinUhlenbeck) = ito!(Array(Float64, p.x.n-1), d
 ### Inverse Ito map takes two successive values of the solution vector and returns a rough path increment dx
 function invito(y0::Float64, y1::Float64, p::OrnsteinUhlenbeck)
   λδ::Float64 = p.λ/(p.x.n-1)
-  expmld::Float64 = exp(-λδ)
-  λδ*(y1-y0*expmld)/(p.σ*(1-expmld))
+  expmλδ::Float64 = exp(-λδ)
+  λδ*(y1-y0*expmλδ)/(p.σ*(1-expmλδ))
 end
 
 function invito!(dx::Vector{Float64}, y::Vector{Float64}, p::OrnsteinUhlenbeck)
   pnmone::Int64 = p.x.n-1
   λδ::Float64 = p.λ/pnmone
-  expmld::Float64 = exp(-λδ)
+  expmλδ::Float64 = exp(-λδ)
 
-  dx[1] = λδ*y[1]/(p.σ*(1-expmld))
+  dx[1] = λδ*y[1]/(p.σ*(1-expmλδ))
   for i = 2:pnmone
-    dx[i] = λδ*(y[i]-y[i-1]*expmld)/(p.σ*(1-expmld))
+    dx[i] = λδ*(y[i]-y[i-1]*expmλδ)/(p.σ*(1-expmλδ))
   end
 
   dx
@@ -58,10 +58,18 @@ end
 invito(y::Vector{Float64}, p::OrnsteinUhlenbeck) = invito!(Array(Float64, p.x.n-1), y, p)
 
 # Log-pdf of increments of linearly interpolated rough path x
-function logpdf(y::Vector{Float64}, p::OrnsteinUhlenbeck)
-  pnmone::Int64 = p.x.n-1
-  λδ::Float64 = p.λ/pnmone
-  logpdf(MvNormal(autocov(convert(FGN, p.x), pnmone)), invito(y, p))/pnmone+log(λδ/(p.σ*(1-exp(-λδ))))
+function logpdf(y::Vector{Float64}, p::OrnsteinUhlenbeck; C::Matrix{Float64}=autocov(convert(FGN, p.x), p.x.n-1))
+  δ::Float64 = 1/(p.x.n-1)
+  λδ::Float64 = p.λ*δ
+  δ*logpdf(MvNormal(C), invito(y, p))+log(λδ/(p.σ*(1-exp(-λδ))))
+end
+
+function logpdf(y::Vector{Float64}, p::OrnsteinUhlenbeck, logdetC::Float64, yPy::Float64, lPl::Float64, yPl::Float64)
+  δ::Float64 = 1/(p.x.n-1)
+  λδ::Float64 = p.λ*δ
+  expmλδ::Float64 = exp(-λδ)
+  phiinv::Float64 = (λδ/(p.σ*(1-expmλδ)))^2
+  0.5*(-δ*(phiinv*(yPy+exp(-2*λδ)*lPl-2*expmλδ*yPl)+logdetC)-log(2*pi)+log(phiinv))
 end
 
 # Approximate MLE estimator of drift parameter of OU process with FBM noise
