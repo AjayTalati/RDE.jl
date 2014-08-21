@@ -3,11 +3,14 @@ module RDE
 using Brownian
 using Distributions
 
+import Base: convert, rand!, rand
 import Distributions: logpdf
 
 export
   OrnsteinUhlenbeck,
   OU,
+  rand!,
+  rand,
   ito!,
   ito,
   invito!,

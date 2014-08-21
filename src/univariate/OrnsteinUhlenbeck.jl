@@ -16,6 +16,21 @@ OrnsteinUhlenbeck(x::Union(BrownianMotion, FBM)) = OrnsteinUhlenbeck(1., 1., x)
 
 const OU = OrnsteinUhlenbeck
 
+### Routine for the exact simulation of OU process driven by Brownian motion started at 0.
+### D.T. Gillespie, Exact Numerical Simulation of the Ornstein-Uhlenbeck Process and its Integral, Physical Review E,
+### 54 (2), 1996, pp. 2084-2091.
+function rand!(y::Vector{Float64}, p::OrnsteinUhlenbeck, p0::Float64)
+  d = Normal()
+  for i = 1:p.x.n-1
+    λt = p.λ*p.x.t[i+1]
+    y[i] = exp(-λt)*p0+p.σ*sqrt(0.5*(1-exp(-2*λt))/p.λ)*rand(d)
+  end
+
+  y
+end
+
+rand(p::OrnsteinUhlenbeck, p0::Float64) = rand!(Array(Float64, p.x.n-1), p, p0)
+
 ### Ito map from rough path increment dx to the next iteration of the solution given the previous iteration y of the
 ### solution
 function ito(y::Float64, dx::Float64, p::OrnsteinUhlenbeck)
