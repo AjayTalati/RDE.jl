@@ -34,7 +34,7 @@ rand(p::OrnsteinUhlenbeck, p0::Float64) = rand!(Array(Float64, p.x.n-1), p, p0)
 ### Ito map from rough path increment dx to the next iteration of the solution given the previous iteration y of the
 ### solution
 function ito(y::Float64, dx::Float64, p::OrnsteinUhlenbeck)
-  λδ::Float64 = p.λ/(p.x.n-1)
+  λδ::Float64 = p.λ*p.x.t[end]/(p.x.n-1)
   expmλδ::Float64 = exp(-λδ)
   y*expmλδ+(p.σ)*dx*(1-expmλδ)/λδ  
 end
@@ -52,14 +52,14 @@ ito(dx::Vector{Float64}, p::OrnsteinUhlenbeck) = ito!(Array(Float64, p.x.n-1), d
 
 ### Inverse Ito map takes two successive values of the solution vector and returns a rough path increment dx
 function invito(y0::Float64, y1::Float64, p::OrnsteinUhlenbeck)
-  λδ::Float64 = p.λ/(p.x.n-1)
+  λδ::Float64 = p.λ*p.x.t[end]/(p.x.n-1)
   expmλδ::Float64 = exp(-λδ)
   λδ*(y1-y0*expmλδ)/(p.σ*(1-expmλδ))
 end
 
 function invito!(dx::Vector{Float64}, y::Vector{Float64}, p::OrnsteinUhlenbeck)
   pnmone::Int64 = p.x.n-1
-  λδ::Float64 = p.λ/pnmone
+  λδ::Float64 = p.λ*p.x.t[end]/pnmone
   expmλδ::Float64 = exp(-λδ)
 
   dx[1] = λδ*y[1]/(p.σ*(1-expmλδ))
@@ -74,13 +74,13 @@ invito(y::Vector{Float64}, p::OrnsteinUhlenbeck) = invito!(Array(Float64, p.x.n-
 
 # Log-pdf of increments of linearly interpolated rough path x
 function logpdf(y::Vector{Float64}, p::OrnsteinUhlenbeck; C::Matrix{Float64}=autocov(convert(FGN, p.x), p.x.n-1))
-  δ::Float64 = 1/(p.x.n-1)
+  δ::Float64 = p.x.t[end]/(p.x.n-1)
   λδ::Float64 = p.λ*δ
   δ*logpdf(MvNormal(C), invito(y, p))+log(λδ/(p.σ*(1-exp(-λδ))))
 end
 
 function logpdf(y::Vector{Float64}, p::OrnsteinUhlenbeck, logdetC::Float64, yPy::Float64, lPl::Float64, yPl::Float64)
-  δ::Float64 = 1/(p.x.n-1)
+  δ::Float64 = p.x.t[end]/(p.x.n-1)
   λδ::Float64 = p.λ*δ
   expmλδ::Float64 = exp(-λδ)
   phiinv::Float64 = (λδ/(p.σ*(1-expmλδ)))^2
@@ -89,7 +89,7 @@ end
 
 # Approximate MLE estimator of drift parameter of OU process with FBM noise
 function approx_mle_ou_drift(y::Vector{Float64}, x::Union(BrownianMotion, FBM))
-  ly::Vector{Float64} = [0, y[1:end-1]]
+  ly::Vector{Float64} = [0., y[1:end-1]]
   pnmone::Int64 = x.n-1
   P::Matrix{Float64} = inv(autocov(convert(FGN, x), pnmone))
   pnmone*log((ly'*P*ly)/(ly'*P*y))
