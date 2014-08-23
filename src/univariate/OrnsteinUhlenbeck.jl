@@ -98,7 +98,8 @@ function approx_mle_ou_drift(y::Vector{Float64}, x::FBM, y0::Float64=0.)
   ly::Vector{Float64} = [y0, y[1:end-1]]
   pnmone::Int64 = x.n-1
   P::Matrix{Float64} = inv(autocov(convert(FGN, x), pnmone))
-  log((ly'*P*ly)/(ly'*P*y))*pnmone/x.t[end]
+  Ply::Vector{Float64} = P*ly
+  log(dot(ly, Ply)/dot(y, Ply))*pnmone/x.t[end]
 end
 
 #approx_mle_ou_diffusion
