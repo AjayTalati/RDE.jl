@@ -73,8 +73,8 @@ end
 invito(p::OrnsteinUhlenbeck, y::Vector{Float64}) = invito!(Array(Float64, p.x.n-1), p, y)
 
 # Auxiliary functions that compute the quadratic form of log-pdf of increments of linearly interpolated rough path x
-function quad_ou(p::OrnsteinUhlenbeck, yPy::Float64, lPl::Float64, yPl::Float64)
-  expmλδ::Float64 = exp(-p.λ*p.x.t[end]/(p.x.n-1))  
+function quad_ou(x::Union(BrownianMotion, FBM), λ::Float64, yPy::Float64, lPl::Float64, yPl::Float64)
+  expmλδ::Float64 = exp(-λ*x.t[end]/(x.n-1))  
   yPy+abs2(expmλδ)*lPl-2*expmλδ*yPl
 end
 
@@ -87,7 +87,7 @@ function loglikelihood(p::OrnsteinUhlenbeck, q::Float64, logdetC::Float64)
 end
 
 loglikelihood(p::OrnsteinUhlenbeck, yPy::Float64, lPl::Float64, yPl::Float64, logdetC::Float64) =
-  loglikelihood(p, quad_ou(p, yPy, lPl, yPl), logdetC)
+  loglikelihood(p, quad_ou(p.x, p.λ, yPy, lPl, yPl), logdetC)
 
 function loglikelihood(p::OrnsteinUhlenbeck, y::Vector{Float64}, C::Matrix{Float64}=autocov(convert(FGN, p.x), p.x.n-1))
   pnmone::Int64 = p.x.n-1
@@ -121,7 +121,7 @@ end
 
 function approx_mle_ou_diffusion(x::FBM, yPy::Float64, lPl::Float64, yPl::Float64)
   λ::Float64 = approx_mle_ou_drift(x, lPl, yPl)
-  approx_mle_ou_diffusion(x, λ, quad_ou(OU(λ, NaN, x), yPy, lPl, yPl))
+  approx_mle_ou_diffusion(x, λ, quad_ou(x, λ, yPy, lPl, yPl))
 end
 
 function approx_mle_ou_diffusion(x::FBM, y::Vector{Float64}, y0::Float64=0.)
@@ -142,7 +142,7 @@ end
 # Approximate MLE estimator of drift and diffusion parameters of OU process with FBM noise
 function approx_mle_ou(x::FBM, yPy::Float64, lPl::Float64, yPl::Float64)
   λ::Float64 = approx_mle_ou_drift(x, lPl, yPl)
-  [λ, approx_mle_ou_diffusion(x, λ, quad_ou(OU(λ, NaN, x), yPy, lPl, yPl))]
+  [λ, approx_mle_ou_diffusion(x, λ, quad_ou(x, λ, yPy, lPl, yPl))]
 end
 
 function approx_mle_ou(x::FBM, y::Vector{Float64}, y0::Float64=0.)
