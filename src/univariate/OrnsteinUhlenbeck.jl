@@ -96,18 +96,20 @@ function logpdf(p::OrnsteinUhlenbeck, y::Vector{Float64}, C::Matrix{Float64}=aut
 end
 
 # Approximate MLE estimator of drift parameter of OU process with BM noise
-function approx_mle_ou_drift(y::Vector{Float64}, x::BrownianMotion, y0::Float64=0.)
+approx_mle_ou_drift(x::BrownianMotion, ll::Float64, yl::Float64) = log(ll/yl)*(x.n-1)/x.t[end]
+
+function approx_mle_ou_drift(x::BrownianMotion, y::Vector{Float64}, y0::Float64=0.)
   l::Vector{Float64} = [y0, y[1:end-1]]
-  log(dot(l, l)/dot(l, y))*(x.n-1)/x.t[end]
+  approx_mle_ou_drift(x, dot(l, l), dot(l, y))
 end
 
 # Approximate MLE estimator of drift parameter of OU process with FBM noise
-function approx_mle_ou_drift(y::Vector{Float64}, x::FBM, y0::Float64=0.)
+approx_mle_ou_drift(x::FBM, lPl::Float64, yPl::Float64) = log(lPl/yPl)*(x.n-1)/x.t[end]
+
+function approx_mle_ou_drift(x::FBM, y::Vector{Float64}, y0::Float64=0.)
   l::Vector{Float64} = [y0, y[1:end-1]]
-  pnmone::Int64 = x.n-1
-  P::Matrix{Float64} = inv(autocov(convert(FGN, x), pnmone))
-  Pl::Vector{Float64} = P*l
-  log(dot(l, Pl)/dot(y, Pl))*pnmone/x.t[end]
+  Pl::Vector{Float64} = inv(autocov(convert(FGN, x), x.n-1))*l
+  approx_mle_ou_drift(x, dot(l, Pl), dot(y, Pl))
 end
 
 # Approximate MLE estimator of diffusion parameter of OU process with BM noise
