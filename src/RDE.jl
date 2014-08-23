@@ -4,7 +4,7 @@ using Brownian
 using Distributions
 
 import Base: convert, rand!, rand
-import Distributions: logpdf
+import Distributions: loglikelihood
 
 export
   OrnsteinUhlenbeck,
@@ -15,8 +15,11 @@ export
   ito,
   invito!,
   invito,
-  logpdf,
-  approx_mle_ou_drift
+  loglikelihood,
+  approx_mle_ou_drift,
+  mle_ou_drift,
+  approx_mle_ou_diffusion,
+  ou_diffusion
 
 include(joinpath("univariate", "OrnsteinUhlenbeck.jl"))
 
