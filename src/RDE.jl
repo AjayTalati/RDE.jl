@@ -17,9 +17,11 @@ export
   invito,
   loglikelihood,
   approx_mle_ou_drift,
-  mle_ou_drift,
   approx_mle_ou_diffusion,
-  ou_diffusion
+  approx_mle_ou,
+  mle_ou_drift,
+  mle_ou_diffusion,
+  mle_ou
 
 include(joinpath("univariate", "OrnsteinUhlenbeck.jl"))
 
