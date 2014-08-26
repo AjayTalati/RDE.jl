@@ -113,7 +113,7 @@ function mle_ou_drift(x::BrownianMotion, y::Vector{Float64}, y0::Float64=0.)
 end
 
 # Approximate MLE estimator of diffusion parameter of OU process with FBM noise
-function approx_mle_ou_diffusion(x::FBM, λ::Float64, q::Float64)
+function approx_mle_ou_diffusion(x::Union(BrownianMotion, FBM), λ::Float64, q::Float64)
   pnmone::Int64 = x.n-1
   λδ::Float64 = λ*x.t[end]/pnmone
   λδ*sqrt(q/pnmone)/(1-exp(-λδ))
@@ -134,9 +134,26 @@ function approx_mle_ou_diffusion(x::FBM, y::Vector{Float64}, y0::Float64=0.)
   approx_mle_ou_diffusion(x, dot(y, P*y), dot(l, Pl), dot(y, Pl))
 end
 
-# Approximate MLE estimator of diffusion parameter of OU process with BM noise
-approx_mle_ou_diffusion(x::BrownianMotion, λ::Float64, q::Float64) = approx_mle_ou_diffusion(convert(FBM, x), λ, q)
+# Exact MLE estimator of diffusion parameter of OU process with BM noise
+function mle_ou_diffusion(x::BrownianMotion, λ::Float64, q::Float64)
+  pnmone::Int64 = x.n-1
+  sqrt(2*λ*q/(pnmone*(1-exp(-2*λ*x.t[end]/pnmone))))
+end
 
+mle_ou_diffusion(x::BrownianMotion, λ::Float64, yy::Float64, ll::Float64, yl::Float64) =
+  mle_ou_diffusion(x, λ, quad_ou(x, λ, yy, ll, yl))
+
+function mle_ou_diffusion(x::BrownianMotion, yy::Float64, ll::Float64, yl::Float64)
+  λ::Float64 = mle_ou_drift(x, ll, yl)
+  mle_ou_diffusion(x, λ, yy, ll, yl)
+end
+
+function mle_ou_diffusion(x::BrownianMotion, y::Vector{Float64}, y0::Float64=0.)
+  l::Vector{Float64} = [y0, y[1:end-1]]
+  mle_ou_diffusion(x, dot(y, y), dot(l, l), dot(l, y))
+end
+
+# Approximate MLE estimator of diffusion parameter of OU process with BM noise
 function approx_mle_ou_diffusion(x::BrownianMotion, λ::Float64, yy::Float64, ll::Float64, yl::Float64)
   pnmone::Int64 = x.n-1
   δ::Float64 = x.t[end]/pnmone
@@ -166,6 +183,16 @@ function approx_mle_ou(x::FBM, y::Vector{Float64}, y0::Float64=0.)
   lPl::Float64 = dot(l, Pl)
   yPl::Float64 = dot(y, Pl)
   [approx_mle_ou_drift(x, lPl, yPl), approx_mle_ou_diffusion(x, dot(y, P*y), lPl, yPl)]
+end
+
+# Exact MLE estimator of diffusion parameter of OU process with BM noise
+mle_ou(x::BrownianMotion, yy, ll, yl) = [mle_ou_drift(x, ll, yl), mle_ou_diffusion(x, yy, ll, yl)]
+
+function mle_ou(x::BrownianMotion, y::Vector{Float64}, y0::Float64=0.)
+  l::Vector{Float64} = [y0, y[1:end-1]]
+  ll::Float64 = dot(l, l)
+  yl::Float64 = dot(l, y)
+  [mle_ou_drift(x, ll, yl), mle_ou_diffusion(x, dot(y, y), ll, yl)]
 end
 
 # Approximate MLE estimator of diffusion parameter of OU process with BM noise
