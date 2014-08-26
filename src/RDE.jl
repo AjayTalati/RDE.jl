@@ -19,9 +19,9 @@ export
   approx_mle_ou_drift,
   approx_mle_ou_diffusion,
   approx_mle_ou,
-  mle_ou_drift,
-  mle_ou_diffusion,
-  mle_ou
+  exact_mle_ou_drift,
+  exact_mle_ou_diffusion,
+  exact_mle_ou
 
 include(joinpath("univariate", "OrnsteinUhlenbeck.jl"))
 
