@@ -78,30 +78,38 @@ function quad_ou(x::Union(BrownianMotion, FBM), λ::Float64, yPy::Float64, lPl::
   yPy+abs2(expmλδ)*lPl-2*expmλδ*yPl
 end
 
-### Approximate log-likelihood based on increments of linearly interpolated rough path x
-function loglikelihood(p::OrnsteinUhlenbeck, q::Float64, logdetC::Float64)
-  pnmone::Int64 = p.x.n-1
-  λδ::Float64 = p.λ*p.x.t[end]/pnmone
-  invφ::Float64 = abs2(λδ/(p.σ*(1-exp(-λδ))))
-  0.5*(-invφ*q-logdetC+pnmone*(log(invφ)-log(2*pi)))
+### Exact log-likelihood based on increments of linearly interpolated BM rough path x
+function exact_loglik_ou(x::BrownianMotion, λ::Float64, σ::Float64, q::Float64)
+  pnmone::Int64 = x.n-1
+  φ::Float64 = 2*λ/(abs2(σ)*(1-exp(-2*λ*x.t[end]/pnmone)))
+  0.5*(-φ*q+pnmone*(log(φ)-log(2*pi)))
 end
 
-loglikelihood(p::OrnsteinUhlenbeck, yPy::Float64, lPl::Float64, yPl::Float64, logdetC::Float64) =
-  loglikelihood(p, quad_ou(p.x, p.λ, yPy, lPl, yPl), logdetC)
+exact_loglik_ou(x::BrownianMotion, λ::Float64, σ::Float64, yy::Float64, ll::Float64, yl::Float64) =
+  exact_loglik_ou(x, λ, σ, quad_ou(x, λ, yy, ll, yl))
 
-function loglikelihood(p::OrnsteinUhlenbeck, y::Vector{Float64}, C::Matrix{Float64}=autocov(convert(FGN, p.x), p.x.n-1))
-  pnmone::Int64 = p.x.n-1
-  λδ::Float64 = p.λ*p.x.t[end]/pnmone
-  logpdf(MvNormal(C), invito(y, p))+pnmone*log(λδ/(p.σ*(1-exp(-λδ))))
-end
-
-### Approximate MLE estimator of drift parameter of OU process with FBM noise
-approx_mle_ou_drift(x::FBM, lPl::Float64, yPl::Float64) = log(lPl/yPl)*(x.n-1)/x.t[end]
-
-function approx_mle_ou_drift(x::FBM, y::Vector{Float64}, y0::Float64=0.)
+function exact_loglik_ou(x::BrownianMotion, λ::Float64, σ::Float64, y::Vector{Float64}, y0::Float64=0.)
   l::Vector{Float64} = [y0, y[1:end-1]]
-  Pl::Vector{Float64} = inv(autocov(convert(FGN, x), x.n-1))*l
-  approx_mle_ou_drift(x, dot(l, Pl), dot(y, Pl))
+  exact_loglik_ou(x, λ, σ, dot(y, y), dot(l, l), dot(l, y))
+end
+
+### Approximate log-likelihood based on increments of linearly interpolated FBM rough path x
+function approx_loglik_ou(x::Union(BrownianMotion, FBM), λ::Float64, σ::Float64, q::Float64, logdetC::Float64)
+  pnmone::Int64 = x.n-1
+  λδ::Float64 = λ*x.t[end]/pnmone
+  invξ::Float64 = abs2(λδ/(σ*(1-exp(-λδ))))
+  0.5*(-invξ*q-logdetC+pnmone*(log(invξ)-log(2*pi)))
+end
+
+approx_loglik_ou(x::Union(BrownianMotion, FBM), λ::Float64, σ::Float64, yPy::Float64, lPl::Float64, yPl::Float64,
+  logdetC::Float64) =
+  approx_loglik_ou(x, λ, σ, quad_ou(x, λ, yPy, lPl, yPl), logdetC)
+
+function approx_loglik_ou(x::Union(BrownianMotion, FBM), λ::Float64, σ::Float64, y::Vector{Float64},
+  C::Matrix{Float64}=autocov(convert(FGN, x), x.n-1))
+  pnmone::Int64 = x.n-1
+  λδ::Float64 = λ*x.t[end]/pnmone
+  logpdf(MvNormal(C), invito(OU(λ, σ, x), y))+pnmone*log(λδ/(σ*(1-exp(-λδ))))
 end
 
 ### Exact MLE estimator of drift parameter of OU process with BM noise
@@ -112,26 +120,13 @@ function exact_mle_ou_drift(x::BrownianMotion, y::Vector{Float64}, y0::Float64=0
   exact_mle_ou_drift(x, dot(l, l), dot(l, y))
 end
 
-### Approximate MLE estimator of diffusion parameter of OU process with FBM noise
-function approx_mle_ou_diffusion(x::Union(BrownianMotion, FBM), λ::Float64, q::Float64)
-  pnmone::Int64 = x.n-1
-  λδ::Float64 = λ*x.t[end]/pnmone
-  λδ*sqrt(q/pnmone)/(1-exp(-λδ))
-end
+### Approximate MLE estimator of drift parameter of OU process with FBM noise
+approx_mle_ou_drift(x::FBM, lPl::Float64, yPl::Float64) = log(lPl/yPl)*(x.n-1)/x.t[end]
 
-approx_mle_ou_diffusion(x::FBM, λ::Float64, yPy::Float64, lPl::Float64, yPl::Float64) =
-  approx_mle_ou_diffusion(x, λ, quad_ou(x, λ, yPy, lPl, yPl))
-
-function approx_mle_ou_diffusion(x::FBM, yPy::Float64, lPl::Float64, yPl::Float64)
-  λ::Float64 = approx_mle_ou_drift(x, lPl, yPl)
-  approx_mle_ou_diffusion(x, λ, yPy, lPl, yPl)
-end
-
-function approx_mle_ou_diffusion(x::FBM, y::Vector{Float64}, y0::Float64=0.)
+function approx_mle_ou_drift(x::FBM, y::Vector{Float64}, y0::Float64=0.)
   l::Vector{Float64} = [y0, y[1:end-1]]
-  P::Matrix{Float64} = inv(autocov(convert(FGN, x), x.n-1))
-  Pl::Vector{Float64} = P*l
-  approx_mle_ou_diffusion(x, dot(y, P*y), dot(l, Pl), dot(y, Pl))
+  Pl::Vector{Float64} = inv(autocov(convert(FGN, x), x.n-1))*l
+  approx_mle_ou_drift(x, dot(l, Pl), dot(y, Pl))
 end
 
 ### Exact MLE estimator of diffusion parameter of OU process with BM noise
@@ -170,19 +165,26 @@ function approx_mle_ou_diffusion(x::BrownianMotion, y::Vector{Float64}, y0::Floa
   approx_mle_ou_diffusion(x, dot(y, y), dot(l, l), dot(l, y))
 end
 
-### Approximate MLE estimator of drift and diffusion parameters of OU process with FBM noise
-function approx_mle_ou(x::FBM, yPy::Float64, lPl::Float64, yPl::Float64)
-  λ::Float64 = approx_mle_ou_drift(x, lPl, yPl)
-  [λ, approx_mle_ou_diffusion(x, λ, quad_ou(x, λ, yPy, lPl, yPl))]
+### Approximate MLE estimator of diffusion parameter of OU process with FBM noise
+function approx_mle_ou_diffusion(x::Union(BrownianMotion, FBM), λ::Float64, q::Float64)
+  pnmone::Int64 = x.n-1
+  λδ::Float64 = λ*x.t[end]/pnmone
+  λδ*sqrt(q/pnmone)/(1-exp(-λδ))
 end
 
-function approx_mle_ou(x::FBM, y::Vector{Float64}, y0::Float64=0.)
+approx_mle_ou_diffusion(x::FBM, λ::Float64, yPy::Float64, lPl::Float64, yPl::Float64) =
+  approx_mle_ou_diffusion(x, λ, quad_ou(x, λ, yPy, lPl, yPl))
+
+function approx_mle_ou_diffusion(x::FBM, yPy::Float64, lPl::Float64, yPl::Float64)
+  λ::Float64 = approx_mle_ou_drift(x, lPl, yPl)
+  approx_mle_ou_diffusion(x, λ, yPy, lPl, yPl)
+end
+
+function approx_mle_ou_diffusion(x::FBM, y::Vector{Float64}, y0::Float64=0.)
   l::Vector{Float64} = [y0, y[1:end-1]]
   P::Matrix{Float64} = inv(autocov(convert(FGN, x), x.n-1))
   Pl::Vector{Float64} = P*l
-  lPl::Float64 = dot(l, Pl)
-  yPl::Float64 = dot(y, Pl)
-  [approx_mle_ou_drift(x, lPl, yPl), approx_mle_ou_diffusion(x, dot(y, P*y), lPl, yPl)]
+  approx_mle_ou_diffusion(x, dot(y, P*y), dot(l, Pl), dot(y, Pl))
 end
 
 ### Exact MLE estimator of diffusion parameter of OU process with BM noise
@@ -203,4 +205,19 @@ function approx_mle_ou(x::BrownianMotion, y::Vector{Float64}, y0::Float64=0.)
   ll::Float64 = dot(l, l)
   yl::Float64 = dot(l, y)
   [exact_mle_ou_drift(x, ll, yl), approx_mle_ou_diffusion(x, dot(y, y), ll, yl)]
+end
+
+### Approximate MLE estimator of drift and diffusion parameters of OU process with FBM noise
+function approx_mle_ou(x::FBM, yPy::Float64, lPl::Float64, yPl::Float64)
+  λ::Float64 = approx_mle_ou_drift(x, lPl, yPl)
+  [λ, approx_mle_ou_diffusion(x, λ, quad_ou(x, λ, yPy, lPl, yPl))]
+end
+
+function approx_mle_ou(x::FBM, y::Vector{Float64}, y0::Float64=0.)
+  l::Vector{Float64} = [y0, y[1:end-1]]
+  P::Matrix{Float64} = inv(autocov(convert(FGN, x), x.n-1))
+  Pl::Vector{Float64} = P*l
+  lPl::Float64 = dot(l, Pl)
+  yPl::Float64 = dot(y, Pl)
+  [approx_mle_ou_drift(x, lPl, yPl), approx_mle_ou_diffusion(x, dot(y, P*y), lPl, yPl)]
 end
