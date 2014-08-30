@@ -1,8 +1,6 @@
 using Base.Test
 using Brownian, RDE
 
-### Simulation 1: comparing exact and approx MLE estimators of OU-BM parameters
-
 # Specify Brownian motion
 t = 0:1/2^2:5;
 bm = BrownianMotion(t);
