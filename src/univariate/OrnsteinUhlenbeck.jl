@@ -88,9 +88,23 @@ end
 exact_loglik_ou(x::BrownianMotion, λ::Float64, σ::Float64, yy::Float64, ll::Float64, yl::Float64) =
   exact_loglik_ou(x, λ, σ, quad_ou(x, λ, yy, ll, yl))
 
-function exact_loglik_ou(x::BrownianMotion, λ::Float64, σ::Float64, y::Vector{Float64}, y0::Float64=0.)
+function exact_loglik_ou_explicit(x::BrownianMotion, λ::Float64, σ::Float64, y::Vector{Float64}, y0::Float64=0.)
   l::Vector{Float64} = [y0, y[1:end-1]]
   exact_loglik_ou(x, λ, σ, dot(y, y), dot(l, l), dot(l, y))
+end
+
+exact_loglik_ou_with_pdf(x::BrownianMotion, λ::Float64, σ::Float64, y::Vector{Float64}, y0::Float64=0.) = 
+  logpdf(IsoNormal([y0, y[1:end-1]]*exp(-λ*x.t[end]/(x.n-1)), σ*sqrt(0.5*(1-exp(-2*λ*x.t[end]/(x.n-1)))/λ)), y)
+
+function exact_loglik_ou(x::BrownianMotion, λ::Float64, σ::Float64, y::Vector{Float64}, y0::Float64=0.;
+  method::Symbol=:explicit)
+  if method == :explicit
+    exact_loglik_ou_explicit(x, λ, σ, y, y0)
+  elseif method == :pdf
+    exact_loglik_ou_with_pdf(x, λ, σ, y, y0)
+  else
+    error("Accepted methods are :explicit and :pdf.")
+  end
 end
 
 ### Approximate log-likelihood based on increments of linearly interpolated FBM rough path x
