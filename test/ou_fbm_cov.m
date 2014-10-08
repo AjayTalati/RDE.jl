@@ -12,8 +12,8 @@ x = FullSimplify[(Gamma[k + 1]*Gamma[h + 1/2]*Gamma[h+1])/(Gamma[k+h+1/2]*Gamma[
   Assumptions -> Element[k, Integers] && k > 0]
 Print[x, "\n"]
 
-Print["First for terms of the hypergeometric series appearing in the covariance of stationary fOU:"]
-x =Series[HypergeometricPFQ[{1}, {1/2 + h, 1 + h}, z], {z, 0, 4}]
+Print["First 4 terms of the hypergeometric series appearing in the covariance of stationary fOU:"]
+x =Series[HypergeometricPFQ[{1}, {1/2+h, 1+h}, z], {z, 0, 4}]
 Print[x, "\n"]
 
 OUFBMCovHSeries[h_, b_, t_] := HypergeometricPFQ[{1}, {1/2+h, 1+h}, (b^2 t^2)/4]

@@ -31,6 +31,35 @@ end
 
 rand(p::OrnsteinUhlenbeck, p0::Float64) = rand!(Array(Float64, p.x.n-1), p, p0)
 
+### Auxiliary function for calculating the hypergeometric 1F2 series that appears in the covariance of stationary fOU.
+function ou_fbm_cov_hypergeom_series(h::Float64, λ::Float64, s::Float64;
+  maxnevals::Int=0, reltol::Float64=1e-8, abstol::Float64=1e-8)
+  local twohplusone::Float64 = 2*h+1
+  local λtimess::Float64 = λ*s
+  local series::Float64 = 0.
+  local siter::Float64 = 0.
+  local k::Int = 0
+  local twok::Float64
+  local nevals::Int = (maxnevals == 0 ? 0 : k+1)
+  local err::Float64 = 1.
+
+  while (0 <= nevals <= maxnevals) && err > reltol*abs(siter) && err > abstol
+    twok = 2*k
+    siter += (λtimess^twok)/gamma(twohplusone+twok)
+
+    k += 1
+    nevals = (maxnevals == 0 ? 0 : k)
+    err = abs(series-siter)
+
+    series = copy(siter)
+  end
+
+  gamma(twohplusone)*series
+end
+
+### Routine for the exact simulation of stationary OU process driven by fractional Brownian motion.
+### This method simulates the OU process as a Gaussian process.
+
 ### Ito map from rough path increment dx to the next iteration of the solution given the previous iteration y of the
 ### solution
 function ito(p::OrnsteinUhlenbeck, y::Float64, dx::Float64)
