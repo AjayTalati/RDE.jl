@@ -21,7 +21,10 @@ x = OUFBMCovHSeries[0.75, 3, 5]
 Print["Hypergeometric series in the ovariance of stationary fOU with drift λ=3 and Hurst index h=0.75 for t=5.: ", x,
   "\n"]
 
-OUFBMCov[h_, λ_, σ_, t_] :=
-  0.5*σ^2*(Gamma[2*h+1]*Cosh[λ*t]/(λ^(2*h))-t^(2*h)*HypergeometricPFQ[{1}, {1/2+h, 1+h}, (λ^2 t^2)/4])
+OUFBMCov[h_, λ_, σ_, t_] := Module[{twoh},
+  twoh = 2*h;
+  0.5*σ^2*(Gamma[twoh+1]*Cosh[λ*t]/(λ^twoh)-t^twoh*HypergeometricPFQ[{1}, {1/2+h, 1+h}, (λ^2 t^2)/4])
+]
 x = OUFBMCov[0.75, 3, 0.1, 5]
+
 Print["Covariance of stationary fOU with drift λ=3, diffusion constant σ=0.1 and Hurst index h=0.75 for t=5.: ", x]
