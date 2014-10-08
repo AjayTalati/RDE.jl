@@ -1,4 +1,4 @@
-#!//opt/bin/mathematica/10.0.1/MathematicaScript -script
+#!/opt/bin/mathematica/10.0.1/MathematicaScript -script
 
 (* Mathematica script for testing the covariance of stationary fOU *)
 
