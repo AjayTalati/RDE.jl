@@ -95,6 +95,33 @@ end
 
 ### Routine for the exact simulation of stationary OU process driven by fractional Brownian motion.
 ### This method simulates the OU process as a Gaussian process.
+function ou_fbm_cov_with_single_sum(h::Float64, λ::Float64, σ::Float64, s::Float64;
+  maxnevals::Int=0, reltol::Float64=1e-8, abstol::Float64=1e-8)
+  local twoh::Float64 = 2*h
+  local λtimess::Float64 = λ*s
+  local series::Float64 = 1.
+  local siter::Float64 = 0.
+  local k::Int = 0
+  local twok::Float64
+  local twokplustwoh::Float64
+  local nevals::Int = (maxnevals == 0 ? 0 : 1)
+  local err::Float64 = 1.
+
+  while (0 <= nevals <= maxnevals) && err > reltol*abs(siter) && err > abstol
+    twok = 2*k
+    twokplustwoh = twoh+twok
+    siter += (1/(gamma(twok+1)*(λ^twoh))-(s^twoh)/(twokplustwoh*gamma(twokplustwoh)))*(λtimess^twok)
+
+    k += 1
+    nevals = (maxnevals == 0 ? 0 : nevals+1)
+    err = abs(series-siter)
+
+    series = siter
+  end
+
+  h*gamma(twoh)*abs2(σ)*series
+end
+
 function ou_fbm_cov_with_hypergeom(h::Float64, λ::Float64, σ::Float64, s::Float64;
   maxnevals::Int=0, reltol::Float64=1e-8, abstol::Float64=1e-8, hmethod::Symbol=:product)
   local twoh::Float64 = 2*h
@@ -102,6 +129,15 @@ function ou_fbm_cov_with_hypergeom(h::Float64, λ::Float64, σ::Float64, s::Floa
 
   0.5*abs2(σ)*(gamma(twoh+1)*cosh(λtimess)/(λ^twoh)
     -(s^twoh)*ou_fbm_cov_hypergeom(h, λ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol, method=hmethod))
+end
+
+function ou_fbm_cov(h::Float64, λ::Float64, σ::Float64, s::Float64;
+  maxnevals::Int=0, reltol::Float64=1e-8, abstol::Float64=1e-8, method::Symbol=:sum)
+  if method == :sum
+    ou_fbm_cov_with_single_sum(h, λ, σ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol)
+  elseif method == :hypergeom
+    ou_fbm_cov_with_hypergeom(h, λ, σ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol)
+  end
 end
 
 ### Ito map from rough path increment dx to the next iteration of the solution given the previous iteration y of the
