@@ -95,6 +95,14 @@ end
 
 ### Routine for the exact simulation of stationary OU process driven by fractional Brownian motion.
 ### This method simulates the OU process as a Gaussian process.
+function ou_fbm_cov_with_hypergeom(h::Float64, λ::Float64, σ::Float64, s::Float64;
+  maxnevals::Int=0, reltol::Float64=1e-8, abstol::Float64=1e-8, hmethod::Symbol=:product)
+  local twoh::Float64 = 2*h
+  local λtimess::Float64 = λ*s
+
+  0.5*abs2(σ)*(gamma(twoh+1)*cosh(λtimess)/(λ^twoh)
+    -(s^twoh)*ou_fbm_cov_hypergeom(h, λ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol, method=hmethod))
+end
 
 ### Ito map from rough path increment dx to the next iteration of the solution given the previous iteration y of the
 ### solution
