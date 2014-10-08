@@ -32,15 +32,42 @@ end
 rand(p::OrnsteinUhlenbeck, p0::Float64) = rand!(Array(Float64, p.x.n-1), p, p0)
 
 ### Auxiliary function for calculating the hypergeometric 1F2 series that appears in the covariance of stationary fOU.
-function ou_fbm_cov_hypergeom_series(h::Float64, λ::Float64, s::Float64;
+function ou_fbm_cov_hypergeom_with_product(h::Float64, λ::Float64, s::Float64;
+  maxnevals::Int=0, reltol::Float64=1e-8, abstol::Float64=1e-8)
+  local λtimess::Float64 = λ*s
+  local series::Float64 = 0.
+  local siter::Float64 = 1.
+  local k::Int = 1
+  local pterm::Float64
+  local nevals::Int = (maxnevals == 0 ? 0 : k)
+  local err::Float64 = 1.
+
+  while (0 <= nevals <= maxnevals) && err > reltol*abs(siter) && err > abstol
+    pterm = 1.
+    for j = 0:(k-1)
+      pterm *= (h+0.5+j)*(h+1+j)
+    end
+    siter += (λtimess^(2*k))/((4^k)*pterm)
+
+    k += 1
+    nevals = (maxnevals == 0 ? 0 : k)
+    err = abs(series-siter)
+
+    series = siter
+  end
+
+  series
+end
+
+function ou_fbm_cov_hypergeom_with_gamma(h::Float64, λ::Float64, s::Float64;
   maxnevals::Int=0, reltol::Float64=1e-8, abstol::Float64=1e-8)
   local twohplusone::Float64 = 2*h+1
   local λtimess::Float64 = λ*s
-  local series::Float64 = 0.
+  local series::Float64 = 1.
   local siter::Float64 = 0.
-  local k::Int = 0
+  local k::Int = 1
   local twok::Float64
-  local nevals::Int = (maxnevals == 0 ? 0 : k+1)
+  local nevals::Int = (maxnevals == 0 ? 0 : k)
   local err::Float64 = 1.
 
   while (0 <= nevals <= maxnevals) && err > reltol*abs(siter) && err > abstol
@@ -51,10 +78,19 @@ function ou_fbm_cov_hypergeom_series(h::Float64, λ::Float64, s::Float64;
     nevals = (maxnevals == 0 ? 0 : k)
     err = abs(series-siter)
 
-    series = copy(siter)
+    series = siter
   end
 
-  gamma(twohplusone)*series
+  1+gamma(twohplusone)*series
+end
+
+function ou_fbm_cov_hypergeom(h::Float64, λ::Float64, s::Float64;
+  maxnevals::Int=0, reltol::Float64=1e-8, abstol::Float64=1e-8, method::Symbol=:product)
+  if method == :product
+    ou_fbm_cov_hypergeom_with_product(h, λ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol)
+  elseif method == :gamma
+    ou_fbm_cov_hypergeom_with_gamma(h, λ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol)
+  end
 end
 
 ### Routine for the exact simulation of stationary OU process driven by fractional Brownian motion.
