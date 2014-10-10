@@ -171,7 +171,30 @@ end
 
 autocov(p::FOU, s::Float64;
   maxnevals::Int64=0, reltol::Float64=1e-8, abstol::Float64=1e-8, method::Symbol=:sum) =
-  ou_fbm_autocov(p.h, p.λ, p.σ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol, method=method)
+  ou_fbm_autocov(p.x.h, p.λ, p.σ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol, method=method)
+
+function autocov!(c::Matrix{Float64}, p::FOU)
+  n::Int64 = p.x.n-1
+
+  for i = 1:n
+    for j = 1:i
+      c[i, j] = autocov(p, abs(p.x.t[j]-p.x.t[i]))
+    end
+  end
+
+  for i = 1:n
+    for j = (i+1):n
+      c[i, j] = c[j, i]
+    end
+  end
+
+  c
+end
+
+function autocov(p::FOU)
+  n::Int64 = p.x.n-1
+  autocov!(Array(Float64, n, n), p)
+end
 
 ### Ito map from rough path increment dx to the next iteration of the solution given the previous iteration y
 function ito(p::OUOrFOU, y::Float64, dx::Float64)

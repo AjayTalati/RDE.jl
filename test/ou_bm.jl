@@ -14,9 +14,9 @@ ou = OU(λ, σ, bm);
 data = rand(ou, 2.);
 
 # Compare exact loglikelihood of OU based on the explicit formula and on the logpdf from Distributions
-x = rand(bm.n-1)
-y = loglikelihood(ou, x; accuracy=:exact, method=:explicit)
-z = loglikelihood(ou, x; accuracy=:exact, method=:pdf)
+x = rand(bm.n-1);
+y = loglikelihood(ou, x; accuracy=:exact, method=:explicit);
+z = loglikelihood(ou, x; accuracy=:exact, method=:pdf);
 @test_approx_eq_eps y z 1e-8
 
 # Compute exact MLE estimator of of (λ, σ) parameters of OU

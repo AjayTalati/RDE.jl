@@ -4,12 +4,14 @@ using Brownian
 using Distributions
 
 import Base: convert, rand!, rand
-import Brownian: autocov
 import Distributions: loglikelihood, fit_mle
+import StatsBase: autocov!, autocov
 
 export
   OU,
   FOU,
+  autocov!,
+  autocov,
   rand!,
   rand,
   ito!,
