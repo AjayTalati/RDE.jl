@@ -1,4 +1,4 @@
-tests = ["ou_bm"]
+tests = ["ou", "fou"]
 
 for t in tests
   tfile = "$t.jl"

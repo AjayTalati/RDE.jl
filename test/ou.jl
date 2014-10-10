@@ -5,7 +5,7 @@ using Brownian, RDE
 t = 0:1/2^2:5;
 bm = BrownianMotion(t);
 
-# Specify OU process driven by the Brownian motion
+# Specify OU process
 λ = 3.;
 σ = 0.1;
 ou = OU(λ, σ, bm);
