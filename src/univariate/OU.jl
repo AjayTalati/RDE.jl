@@ -159,14 +159,16 @@ autocov(p::FOU, s::Float64;
   ou_fbm_autocov(p.x.h, p.λ, p.σ, s; maxnevals=maxnevals, reltol=reltol, abstol=abstol, method=method)
 
 function autocov!(c::Matrix{Float64}, p::FOU)
-  for i = 1:p.x.n
+  n::Int64 = p.x.n-1
+
+  for i = 1:n
     for j = 1:i
       c[i, j] = autocov(p, abs(p.x.t[j]-p.x.t[i]))
     end
   end
 
-  for i = 1:p.x.n
-    for j = (i+1):p.x.n
+  for i = 1:n
+    for j = (i+1):n
       c[i, j] = c[j, i]
     end
   end
@@ -174,23 +176,24 @@ function autocov!(c::Matrix{Float64}, p::FOU)
   c
 end
 
-autocov(p::FOU) = autocov!(Array(Float64, p.x.n, p.x.n), p)
+function autocov(p::FOU)
+  n::Int64 = p.x.n-1
+  autocov!(Array(Float64, n, n), p)
+end
 
 ### Routine for the exact simulation of OU process driven by Brownian motion started at 0.
 ### D.T. Gillespie, Exact Numerical Simulation of the Ornstein-Uhlenbeck Process and its Integral, Physical Review E,
 ### 54 (2), 1996, pp. 2084-2091.
 function rand!(y::Vector{Float64}, p::OU, y0::Float64)
-  y[1] = y0
-  
-  for i = 2:p.x.n
-    λt = p.λ*p.x.t[i]
+  for i = 1:p.x.n-1
+    λt = p.λ*p.x.t[i+1]
     y[i] = exp(-λt)*y0+p.σ*sqrt(0.5*(1-exp(-2*λt))/p.λ)*randn()
   end
 
   y
 end
 
-rand(p::OU, y0::Float64) = rand!(Array(Float64, p.x.n), p, y0)
+rand(p::OU, y0::Float64) = rand!(Array(Float64, p.x.n-1), p, y0)
 
 ### Routine for the exact simulation of stationary FOU proccess.
 ### The rand_chold method is based on Cholesky decomposition.
@@ -198,12 +201,12 @@ rand(p::OU, y0::Float64) = rand!(Array(Float64, p.x.n), p, y0)
 ### Motion, PhD thessis, 2013.
 ### The complexity of the algorithm is O(n^3), where n is the number of FBM samples.
 function rand_chol(p::FOU)
-  chol(autocov(p), :L)*randn(p.x.n)
+  chol(autocov(p), :L)*randn(p.x.n-1)
 end
 
 function rand_chol(p::Vector{FOU})
   np = length(p)
-  y = Array(Float64, p.x[1].n, np)
+  y = Array(Float64, p.x[1].n-1, np)
 
   for i = 1:np
     y[:, i] = rand_chol(p[i])
@@ -316,7 +319,11 @@ function approx_loglik(p::OUOrFOU, q::Float64, logdetC::Float64)
   0.5*(-invξ*q-logdetC+pnmone*(log(invξ)-log(2*pi)))
 end
 
-approx_loglik(p::OUOrFOU, yPy::Float64, lPl::Float64, yPl::Float64, logdetC::Float64) =
+approx_loglik(p::OU, yPy::Float64, lPl::Float64, yPl::Float64, logdetC::Float64=(p.x.t[end]/(p.x.n-1))^(p.x.n-1)) =
+  approx_loglik(p, quad(p, yPy, lPl, yPl), logdetC)
+
+approx_loglik(p::FOU, yPy::Float64, lPl::Float64, yPl::Float64,
+  logdetC::Float64=logdet(autocov(convert(FGN, p.x), p.x.n-1))) =
   approx_loglik(p, quad(p, yPy, lPl, yPl), logdetC)
 
 function approx_loglik(p::OUOrFOU, y::Vector{Float64}, C::Matrix{Float64}=autocov(convert(FGN, p.x), p.x.n-1))
@@ -353,7 +360,7 @@ approx_mle_ou_drift(x::BMOrFBM, lPl::Float64, yPl::Float64) = log(lPl/yPl)*(x.n-
 
 function approx_mle_ou_drift(x::BMOrFBM, y::Vector{Float64}, y0::Float64=0.)
   l::Vector{Float64} = [y0, y[1:end-1]]
-  Pl::Vector{Float64} = inv(autocov(convert(FGN, x), x.n))*l
+  Pl::Vector{Float64} = inv(autocov(convert(FGN, x), x.n-1))*l
   approx_mle_ou_drift(x, dot(l, Pl), dot(y, Pl))
 end
 
@@ -424,7 +431,7 @@ end
 
 function approx_mle_ou_diffusion(x::FBM, y::Vector{Float64}, y0::Float64=0.)
   l::Vector{Float64} = [y0, y[1:end-1]]
-  P::Matrix{Float64} = inv(autocov(convert(FGN, x), x.n))
+  P::Matrix{Float64} = inv(autocov(convert(FGN, x), x.n-1))
   Pl::Vector{Float64} = P*l
   approx_mle_ou_diffusion(x, dot(y, P*y), dot(l, Pl), dot(y, Pl))
 end
