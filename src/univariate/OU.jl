@@ -196,7 +196,22 @@ end
 rand(p::OU, y0::Float64) = rand!(Array(Float64, p.x.n-1), p, y0)
 
 ### Routine for the exact simulation of stationary FOU proccess.
-### The rand_chold method is based on Cholesky decomposition.
+### The rand_gp method is based on sampling from FOU when seen as a Gaussian process (GP)
+rand_gp(p::FOU) = rand(MvNormal(autocov(p)))
+
+function rand_gp(p::Vector{FOU})
+  np = length(p)
+  y = Array(Float64, p.x[1].n-1, np)
+
+  for i = 1:np
+    y[:, i] = rand_gp(p[i])
+  end
+
+  y
+end
+
+### Routine for the exact simulation of stationary FOU proccess.
+### The rand_chol method is based on Cholesky decomposition.
 ### G. Schoechtel, Motion of Inertial Particles in Gaussian Fields Driven by an Infinite-Dimensional Fractional Brownian
 ### Motion, PhD thessis, 2013.
 ### The complexity of the algorithm is O(n^3), where n is the number of FBM samples.
@@ -216,21 +231,25 @@ function rand_chol(p::Vector{FOU})
 end
 
 ### Interface for sampling FOU.
-### For the time being, only the method based on Cholesky decomposition has been implemented.
+### For the time being, only the method based on GP and on Cholesky decomposition have been implemented.
 ### Other methods include the Durbin-Levinson, the circular embedding and spectral approximate methods.
-function rand(p::FOU; rtype::Symbol=:chol)
-  if rtype == :chol
+function rand(p::FOU; rtype::Symbol=:gp)
+  if rtype == :gp
+    rand_gp(p)
+  elseif rtype == :chol
     rand_chol(p)
   else
-    error("Accepted methods are :chol.")
+    error("Accepted methods are :gp and :chol.")
   end
 end
 
-function rand(p::Vector{FOU}; rtype::Symbol=:chol)
-  if rtype == :chol
+function rand(p::Vector{FOU}; rtype::Symbol=:gp)
+  if rtype == :gp
+    rand_gp(p)
+  elseif rtype == :chol
     rand_chol(p)
   else
-    error("Accepted methods are :chol.")
+    error("Accepted methods are :gp and :chol.")
   end
 end
 
